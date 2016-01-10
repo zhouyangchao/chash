@@ -16,7 +16,7 @@ and supporting more than one comparison functions.
 Call this function when the compare function return 0. <br>
 The prototype of callback function can be like this: <br>
 ```c
-int32_t compare_func(elment_t *elment, ...)
+int32_t callback_func(elment_t *elment, ...)
 ```
 ##Todo
 ###Multi-threading support
