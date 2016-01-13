@@ -21,6 +21,10 @@ extern "C" {
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef CHASH_THREAD_SAFE
+#include <pthread.h>
+#endif
+
 #ifndef CHASH_MALLOC
 #define CHASH_MALLOC(size) malloc(size)
 #endif
@@ -35,7 +39,7 @@ extern "C" {
 
 typedef struct chash_bucket {
 	struct chash_bucket *next;
-	uint8_t data[0];
+	uint8_t data[];
 } chash_bucket_t;
 
 typedef struct chash {
@@ -44,24 +48,32 @@ typedef struct chash {
 	uint32_t entity_count;
 	uint32_t entity_size;
 #ifdef CHASH_THREAD_SAFE
-	spinlock_t *locks;
-	spinlock_t lock;
+	pthread_rwlock_t *locks;
+	pthread_rwlock_t lock;
 #endif
 } chash_t;
 
 #ifdef CHASH_THREAD_SAFE
-#define CHASH_LOCK(hash_table) \
-	spin_lock(&hash_table->lock)
+#define CHASH_RDLOCK(hash_table) \
+	pthread_rwlock_rdlock(&hash_table->lock)
+#define CHASH_WRLOCK(hash_table) \
+	pthread_rwlock_wrlock(&hash_table->lock)
 #define CHASH_UNLOCK(hash_table) \
-	spin_unlock(&hash_table->lock)
-#define CHASH_BUCKET_LOCK(hash_table, hash_code) \
-	spin_lock(&hash_table->locks[hash_code%hash_table->bucket_size])
+	pthread_rwlock_unlock(&hash_table->lock)
+
+#define CHASH_BUCKET_RDLOCK(hash_table, hash_code) \
+	pthread_rwlock_rdlock(&hash_table->locks[hash_code%hash_table->bucket_size])
+#define CHASH_BUCKET_WRLOCK(hash_table, hash_code) \
+	pthread_rwlock_wrlock(&hash_table->locks[hash_code%hash_table->bucket_size])
 #define CHASH_BUCKET_UNLOCK(hash_table, hash_code) \
-	spin_unlock(&hash_table->locks[hash_code%hash_table->bucket_size])
+	pthread_rwlock_unlock(&hash_table->locks[hash_code%hash_table->bucket_size])
 #else
-#define CHASH_LOCK(hash_table)
+#define CHASH_RDLOCK(hash_table)
+#define CHASH_WRLOCK(hash_table)
 #define CHASH_UNLOCK(hash_table)
-#define CHASH_BUCKET_LOCK(hash_table, hash_code)
+
+#define CHASH_BUCKET_RDLOCK(hash_table, hash_code)
+#define CHASH_BUCKET_WRLOCK(hash_table, hash_code)
 #define CHASH_BUCKET_UNLOCK(hash_table, hash_code)
 #endif
 
@@ -196,6 +208,7 @@ OUT: \
 		if (destroy) \
 			destroy((void *)out_bucket->data); \
 		CHASH_FREE(out_bucket); \
+		--hash_table->entity_count; \
 		ret = 0; \
 	} \
 	ret; \
@@ -220,16 +233,27 @@ static inline chash_t *chash_create_size(uint32_t bucket_size, uint32_t entity_s
 	chash->entity_count = 0;
 	chash->entity_size = entity_size;
 #ifdef CHASH_THREAD_SAFE
-	chash->locks = (spinlock_t *)CHASH_MALLOC(sizeof(spinlock_t) * bucket_size);
+	chash->locks = (pthread_rwlock_t *)CHASH_MALLOC(sizeof(pthread_rwlock_t) * bucket_size);
 	if (NULL == chash->locks)
 		goto ERROR_LOCK;
+	if (pthread_rwlock_init(&chash->lock, NULL))
+		goto ERROR_LOCK_INIT;
 	for (i = 0; i < chash->bucket_size; ++i)
-		spin_lock_init(&chash->locks[i]);
-	spin_lock_init(&chash->lock);
+		if (pthread_rwlock_init(&chash->locks[i], NULL))
+			goto ERROR_LOCKS_INIT;
 #endif
 	return chash;
+
+#ifdef CHASH_THREAD_SAFE
+ERROR_LOCKS_INIT:
+	for (; i >= 0; --i)
+		(void)pthread_rwlock_destroy(&chash->locks[i]);
+	(void)pthread_rwlock_destroy(&chash->lock);
+ERROR_LOCK_INIT:
+	CHASH_FREE(chash->locks);
 ERROR_LOCK:
 	CHASH_FREE(chash->index);
+#endif
 ERROR_BUCKET:
 	CHASH_FREE(chash);
 ERROR:
@@ -260,8 +284,14 @@ static inline void chash_clean(chash_t *chash)
 static inline void chash_destroy(chash_t *chash)
 {
 	assert(chash);
+#ifdef CHASH_THREAD_SAFE
+	uint32_t i;
+#endif
 	CHASH_FREE(chash->index);
 #ifdef CHASH_THREAD_SAFE
+	(void)pthread_rwlock_destroy(&chash->lock);
+	for (i = 0; i < chash->bucket_size; ++i)
+		(void)pthread_rwlock_destroy(&chash->locks[i]);
 	CHASH_FREE(chash->locks);
 #endif
 	CHASH_FREE(chash);

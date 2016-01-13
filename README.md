@@ -19,7 +19,5 @@ The prototype of callback function can be like this: <br>
 int32_t callback_func(elment_t *elment, ...)
 ```
 ##Todo
-###Multi-threading support
-Each bucket has it's lock.
 ###User-defined memory management
 User can set special memory management policy.

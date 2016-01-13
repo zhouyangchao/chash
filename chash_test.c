@@ -13,13 +13,17 @@ typedef struct test_arg {
 
 chash_t *test_ht;
 
-#define HTTEST_LOCK() \
-	CHASH_LOCK(test_ht)
+#define HTTEST_RDLOCK() \
+	CHASH_RDLOCK(test_ht)
+#define HTTEST_WRLOCK() \
+	CHASH_WRLOCK(test_ht)
 #define HTTEST_UNLOCK() \
 	CHASH_UNLOCK(test_ht)
 
-#define HTTEST_BUCKET_LOCK(hash_code) \
-	CHASH_BUCKET_LOCK(test_ht, hash_code)
+#define HTTEST_BUCKET_RDLOCK(hash_code) \
+	CHASH_BUCKET_RDLOCK(test_ht, hash_code)
+#define HTTEST_BUCKET_WRLOCK(hash_code) \
+	CHASH_BUCKET_WRLOCK(test_ht, hash_code)
 #define HTTEST_BUCKET_UNLOCK(hash_code) \
 	CHASH_BUCKET_UNLOCK(test_ht, hash_code)
 
@@ -98,7 +102,9 @@ int main()
 printf("insert test:\n\tinsert: ");
 	for (i = 0; i < sizeof(values)/sizeof(values[0]); ++i) {
 		hash_code = test_hashcode(values[i]);
+		HTTEST_BUCKET_WRLOCK(hash_code);
 		ret = HTTEST_INSERT_WITHOUT_LOCK(hash_code, values[i]);
+		HTTEST_BUCKET_UNLOCK(hash_code);
 		assert(!ret);
 		printf("%d ", values[i]);
 	}
@@ -106,32 +112,46 @@ printf("insert test:\n\tinsert: ");
 printf("\n\nlookup test:\n\tlookup: ");
 	for (i = 0; i < sizeof(values)/sizeof(values[0]); ++i) {
 		hash_code = test_hashcode(values[i]);
+		HTTEST_BUCKET_RDLOCK(hash_code);
 		elem = HTTEST_LOOKUP_WITHOUT_LOCK(hash_code, values[i]);
+		HTTEST_BUCKET_UNLOCK(hash_code);
 		if (elem)
 			printf("%d ", elem->value);
 	}
 
 printf("\n\ncallback test:\n\tcallback: ");
 	memset(&arg, 0, sizeof(arg));
+	HTTEST_RDLOCK();
 	HTTEST_CALLBACK_WITHOUT_LOCK(test_compare_null, test_callback, NULL, &arg, 0);
+	HTTEST_UNLOCK();
 	printf("\n\tsum %d, cnt %d\n", arg.sum, arg.cnt);
 
 	printf("\ndelete test:\n\tdelete: ");
 	for (i = 0; i < sizeof(values)/sizeof(values[0]) - 3; ++i) {
 		hash_code = test_hashcode(values[i]);
+		HTTEST_BUCKET_WRLOCK(hash_code);
 		ret = HTTEST_DELETE_WITHOUT_LOCK(hash_code, values[i]);
+		HTTEST_BUCKET_UNLOCK(hash_code);
 		assert(!ret);
 		printf("%d ", values[i]);
 	}
 	printf("\n\tleave: ");
 	memset(&arg, 0, sizeof(arg));
+	HTTEST_RDLOCK();
 	HTTEST_CALLBACK_WITHOUT_LOCK(test_compare_null, test_callback, NULL, &arg, 0);
+	HTTEST_UNLOCK();
 	printf("\n\tsum %d, cnt %d\n", arg.sum, arg.cnt);
 
 printf("\nclean test:\n");
+	HTTEST_WRLOCK();
 	chash_clean(test_ht);
+	HTTEST_UNLOCK();
 	printf("\tleave: ");
+	HTTEST_RDLOCK();
 	HTTEST_CALLBACK_WITHOUT_LOCK(test_compare_null, test_callback, NULL, NULL, 0);
+	HTTEST_UNLOCK();
 	printf("\n", arg.sum, arg.cnt);
+
+	chash_destroy(test_ht);
 	return 0;
 }

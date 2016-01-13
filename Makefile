@@ -1,13 +1,18 @@
 CC = gcc
-OPT = --std=c99 -Wall -Werror
+OPT = --std=c99 -O3 -Wall -Werror
+INC = 
+DEFS = -DCHASH_THREAD_SAFE
+CFLAGS += $(DEFS) $(INC)
+LDFLAGS = 
+LIBS = -lpthread
+
 TARGET = chash_test
 OBJECTS = chash_test.o
 
-chash_test : $(OBJECTS)
-	$(CC) $(OPT) -o $(TARGET) $(OBJECTS)
+$(TARGET) : $(OBJECTS)
+	$(CC) $(CFLAGS) $(OPT) -o $(TARGET) $(OBJECTS) $(LIBS)
 
 .PHONY : clean
 clean :
 	rm -f $(TARGET) $(OBJECTS)
-
 
