@@ -35,7 +35,7 @@ extern "C" {
 
 typedef struct chash_bucket {
 	struct chash_bucket *next;
-	void *data;
+	uint8_t data[0];
 } chash_bucket_t;
 
 typedef struct chash {
@@ -83,7 +83,7 @@ __label__ FOUND;\
 	out_front_bucket = CHASH_BUCKET(hash_table, hash_code); \
 	out_bucket = out_front_bucket;\
 	while(out_bucket) { \
-		if(!compare(elem = out_bucket->data, ##__VA_ARGS__)) { \
+		if(!compare(elem = (void *)out_bucket->data, ##__VA_ARGS__)) { \
 			goto FOUND; \
 		} \
 		out_front_bucket = out_bucket; \
@@ -109,7 +109,7 @@ FOUND:\
 	void *elem = NULL; \
 	chash_bucket_t *bucket = CHASH_BUCKET(hash_table, hash_code); \
 	while(bucket) { \
-		if(!compare(elem = bucket->data, ##__VA_ARGS__) \
+		if(!compare(elem = (void *)bucket->data, ##__VA_ARGS__) \
 			&& (ret = callback(elem, arg_in, arg_out))) \
 			break; \
 		bucket = bucket->next; \
@@ -162,8 +162,7 @@ __label__ OUT; \
 	if (!bucket) { \
 		goto OUT; \
 	} \
-	bucket->data = bucket + 1; \
-	if (init(bucket->data, ##__VA_ARGS__)) { \
+	if (init((void *)bucket->data, ##__VA_ARGS__)) { \
 		CHASH_FREE(bucket); \
 		goto OUT; \
 	} \
@@ -195,7 +194,7 @@ OUT: \
 			out_front_bucket->next = out_bucket->next; \
 		} \
 		if (destroy) \
-			destroy(out_bucket->data); \
+			destroy((void *)out_bucket->data); \
 		CHASH_FREE(out_bucket); \
 		ret = 0; \
 	} \
