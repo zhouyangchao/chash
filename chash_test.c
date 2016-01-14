@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include "chash.h"
 
+#define TEST_CNT 1000
+
 typedef struct test_elem {
 	int32_t value;
 } test_elem_t;
@@ -90,17 +92,20 @@ int main()
 	if (test_ht == NULL)
 		printf("create chash failed.\n");
 
-	int32_t i, ret = 0, values[10];
+	int32_t i, ret = 0, *values = NULL;
 	uint32_t hash_code;
 	test_arg_t arg;
 	test_elem_t *elem = NULL;
 
-	for (i = 0; i < sizeof(values)/sizeof(values[0]); ++i) {
-		values[i] = rand() & 0x0000FFFF;
+	values = (int32_t *)malloc(sizeof(int32_t) * TEST_CNT);
+	assert(values);
+
+	for (i = 0; i < TEST_CNT; ++i) {
+		values[i] = rand() & 0xFFFF;
 	}
 
 printf("insert test:\n\tinsert: ");
-	for (i = 0; i < sizeof(values)/sizeof(values[0]); ++i) {
+	for (i = 0; i < TEST_CNT; ++i) {
 		hash_code = test_hashcode(values[i]);
 		HTTEST_BUCKET_WRLOCK(hash_code);
 		ret = HTTEST_INSERT_WITHOUT_LOCK(hash_code, values[i]);
@@ -110,7 +115,7 @@ printf("insert test:\n\tinsert: ");
 	}
 
 printf("\n\nlookup test:\n\tlookup: ");
-	for (i = 0; i < sizeof(values)/sizeof(values[0]); ++i) {
+	for (i = 0; i < TEST_CNT; ++i) {
 		hash_code = test_hashcode(values[i]);
 		HTTEST_BUCKET_RDLOCK(hash_code);
 		elem = HTTEST_LOOKUP_WITHOUT_LOCK(hash_code, values[i]);
@@ -126,8 +131,8 @@ printf("\n\ncallback test:\n\tcallback: ");
 	HTTEST_UNLOCK();
 	printf("\n\tsum %d, cnt %d\n", arg.sum, arg.cnt);
 
-	printf("\ndelete test:\n\tdelete: ");
-	for (i = 0; i < sizeof(values)/sizeof(values[0]) - 3; ++i) {
+printf("\ndelete test:\n\tdelete: ");
+	for (i = 0; i < TEST_CNT/2; ++i) {
 		hash_code = test_hashcode(values[i]);
 		HTTEST_BUCKET_WRLOCK(hash_code);
 		ret = HTTEST_DELETE_WITHOUT_LOCK(hash_code, values[i]);

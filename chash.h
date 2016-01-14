@@ -201,7 +201,7 @@ OUT: \
 	CHASH_BUCKET_LOOKUP(elem, hash_table, hash_code, compare, out_bucket, out_front_bucket, ##__VA_ARGS__); \
 	if (out_bucket) { \
 		if (out_bucket == out_front_bucket) { \
-			CHASH_BUCKET(hash_table, hash_code) = NULL; \
+			CHASH_BUCKET(hash_table, hash_code) = out_bucket->next; \
 		} else { \
 			out_front_bucket->next = out_bucket->next; \
 		} \
