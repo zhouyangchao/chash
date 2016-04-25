@@ -228,7 +228,7 @@ static inline chash_t *chash_create_size(uint32_t bucket_size, uint32_t entity_s
 	if (NULL == chash->index)
 		goto ERROR_BUCKET;
 
-	memset(chash->index, 0, bucket_size * sizeof(chash->index));
+	memset(chash->index, 0, sizeof(chash_bucket_t *) * bucket_size);
 	chash->bucket_size = bucket_size;
 	chash->entity_count = 0;
 	chash->entity_size = entity_size;
