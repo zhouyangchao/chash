@@ -38,14 +38,20 @@ extern "C" {
 #endif
 
 typedef struct chash_bucket {
+	/*pointing to next bucket*/
 	struct chash_bucket *next;
+	/*storing the data of element*/
 	uint8_t data[];
 } chash_bucket_t;
 
 typedef struct chash {
+	/*chash bucket array*/
 	chash_bucket_t **index;
+	/*chash bucket size, default CHASH_BUCKET_SIZE*/
 	uint32_t bucket_size;
+	/*the count of all elememts in this chash*/
 	uint32_t entity_count;
+	/*the size of each element in this chash*/
 	uint32_t entity_size;
 #ifdef CHASH_THREAD_SAFE
 	pthread_rwlock_t *locks;
