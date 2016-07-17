@@ -3,7 +3,7 @@ A general hash table implementation for C
 
 ##How to use
 * include chash.h
-* define some macros as interfaces and functions for comparison and callback like in chash_test.c
+* define some macros as interfaces and functions for comparison and callbacks like in chash_test.c
 
 ##Features
 ###user input comparison function
@@ -11,9 +11,9 @@ The prototype of compare function can be like this: <br>
 ```c
 int32_t compare_func(elment_t *elment, ...)
 ```
-and supporting more than one comparison functions if you need.
+and supporting more than one comparison functions while you need. It supports fuzzy comparison.
 ###user input callback function
-Call this function when the compare function return 0. <br>
+Call this function when the input compare function return 0. <br>
 The prototype of callback function can be like this: <br>
 ```c
 int32_t callback_func(elment_t *elment, ...)
