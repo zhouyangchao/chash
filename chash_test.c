@@ -155,7 +155,7 @@ printf("\nclean test:\n");
 	HTTEST_RDLOCK();
 	HTTEST_CALLBACK_WITHOUT_LOCK(test_compare_null, test_callback, NULL, NULL, 0);
 	HTTEST_UNLOCK();
-	printf("\n", arg.sum, arg.cnt);
+	printf("\n");
 
 	chash_destroy(test_ht);
 	return 0;

@@ -48,7 +48,7 @@ typedef struct chash {
 	/*chash bucket array*/
 	chash_bucket_t **index;
 	/*chash bucket size, default CHASH_BUCKET_SIZE*/
-	uint32_t bucket_size;
+	int32_t bucket_size;
 	/*the count of all elememts in this chash*/
 	uint32_t entity_count;
 	/*the size of each element in this chash*/
@@ -160,7 +160,7 @@ FOUND:\
  */
 #define CHASH_CALLBACK(hash_table, compare, callback, arg_in, arg_out, ...) ({ \
 	int32_t ret = 0; \
-	uint32_t idx; \
+	int32_t idx; \
 	for(idx = 0; idx < hash_table->bucket_size; ++idx) \
 		if ((ret = CHASH_BUCKET_CALLBACK(hash_table, idx, compare, callback, arg_in, arg_out, ##__VA_ARGS__))) \
 			break; \
@@ -211,8 +211,7 @@ OUT: \
 		} else { \
 			out_front_bucket->next = out_bucket->next; \
 		} \
-		if (destroy) \
-			destroy((void *)out_bucket->data); \
+		destroy((void *)out_bucket->data); \
 		CHASH_FREE(out_bucket); \
 		--hash_table->entity_count; \
 		ret = 0; \
@@ -225,7 +224,7 @@ static inline chash_t *chash_create_size(uint32_t bucket_size, uint32_t entity_s
 	assert(bucket_size > 0);
 	assert(entity_size > 0);
 #ifdef CHASH_THREAD_SAFE
-	uint32_t i;
+	int32_t i;
 #endif
 	chash_t *chash = (chash_t *)CHASH_MALLOC(sizeof(chash_t));
 	if (NULL == chash)
@@ -276,7 +275,7 @@ static inline void chash_clean(chash_t *chash)
 {
 	assert(chash);
 	chash_bucket_t *bucket, *del_bucket;
-	uint32_t idx;
+	int32_t idx;
 	for(idx = 0; idx < chash->bucket_size; ++idx) {
 		bucket = chash->index[idx];
 		while (bucket) {
@@ -291,7 +290,7 @@ static inline void chash_destroy(chash_t *chash)
 {
 	assert(chash);
 #ifdef CHASH_THREAD_SAFE
-	uint32_t i;
+	int32_t i;
 #endif
 	CHASH_FREE(chash->index);
 #ifdef CHASH_THREAD_SAFE
